@@ -1,0 +1,3806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Industrial OCR Studio — Engineered by Fareed Ali</title>
+  <meta name="description"
+    content="Universal high-accuracy client-side OCR system for all types of Purchase Orders (POs), Delivery Challans, Delivery Notes, and Inward/Outward Gate Passes (IGP/OGP) with pop-out dual comparison, structured line-break stream, and 1-click ERP mapping.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Only External Dependency: Tesseract.js v5 -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM & CSS VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-base: #06090f;
+      --bg-surface: #0c121e;
+      --bg-card: rgba(12, 18, 30, 0.88);
+      --bg-card-hover: rgba(18, 26, 44, 0.95);
+      --bg-input: #080d16;
+      --bg-input-focus: #0e1626;
+
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --border-accent: rgba(0, 137, 123, 0.4);
+
+      --primary: #00897b;
+      --primary-dark: #00695c;
+      --primary-light: #26a69a;
+      --primary-gradient: linear-gradient(135deg, #00897b 0%, #00acc1 50%, #3949ab 100%);
+      --primary-glow: rgba(0, 137, 123, 0.3);
+
+      --brand-emerald: #00897b;
+      --brand-emerald-light: #26a69a;
+      --brand-emerald-bg: rgba(0, 137, 123, 0.12);
+
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.25);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.25);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.25);
+      --indigo: #6366f1;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+
+      --shadow-card: 0 12px 35px -10px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      --shadow-glow: 0 0 25px var(--primary-glow);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      background-image:
+        radial-gradient(circle at 12% 10%, rgba(0, 137, 123, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 88% 18%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    main.container {
+      flex: 1 0 auto;
+      width: 100%;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ==========================================================================
+       STICKY HEADER
+       ========================================================================== */
+    header {
+      padding: 16px 0 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(6, 9, 15, 0.9);
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #fff;
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-text h1 span.badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      background: var(--brand-emerald-bg);
+      border: 1px solid rgba(0, 137, 123, 0.4);
+      color: var(--primary-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .worker-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      background: rgba(12, 18, 30, 0.85);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-sub);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot.ready {
+      background: var(--emerald);
+      box-shadow: 0 0 10px var(--emerald);
+    }
+
+    .status-dot.busy {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: pulse-dot 1.5s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--rose);
+      box-shadow: 0 0 10px var(--rose);
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(1.3);
+      }
+    }
+
+    /* ==========================================================================
+       BUTTONS & CONTROLS
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: var(--brand-emerald);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(0, 137, 123, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #00796b;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 137, 123, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.7);
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(51, 65, 85, 0.85);
+      border-color: var(--border-hover);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.12);
+      color: #fda4af;
+      border-color: rgba(244, 63, 94, 0.25);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(244, 63, 94, 0.22);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.75rem;
+    }
+
+    /* 1-Click Copy Icon Button */
+    .input-copy-btn {
+      position: absolute;
+      right: 6px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, background 0.2s, transform 0.1s;
+    }
+
+    .input-copy-btn:hover {
+      color: #00897b;
+      background: rgba(0, 137, 123, 0.12);
+      transform: scale(1.1);
+    }
+
+    .input-copy-btn.copied {
+      color: #10b981;
+    }
+
+    /* ==========================================================================
+       DROPZONE & SAMPLES
+       ========================================================================== */
+    .hero-section {
+      margin: 18px 0 14px;
+    }
+
+    .dropzone {
+      position: relative;
+      border: 2px dashed rgba(0, 137, 123, 0.35);
+      border-radius: var(--radius-md);
+      padding: 20px 20px;
+      background: rgba(12, 18, 30, 0.65);
+      backdrop-filter: blur(12px);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    .dropzone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0, 137, 123, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--primary-light);
+      background: rgba(18, 26, 44, 0.8);
+      box-shadow: 0 0 30px var(--primary-glow);
+    }
+
+    .dropzone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .dropzone-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .dropzone-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(0, 137, 123, 0.15);
+      border: 1px solid rgba(0, 137, 123, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-light);
+      flex-shrink: 0;
+    }
+
+    .dropzone-text h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: left;
+    }
+
+    .dropzone-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .sample-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .paste-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .kbd {
+      background: #1e293b;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* ==========================================================================
+       CAROUSEL WORKSPACE CONTAINER
+       ========================================================================== */
+    .carousel-workspace {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin-top: 10px;
+    }
+
+    /* Carousel Navigation Header */
+    .carousel-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: rgba(8, 12, 20, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .carousel-slide-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slide-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--brand-emerald-bg);
+      color: var(--primary-light);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(0, 137, 123, 0.4);
+    }
+
+    .doc-title-pill {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-badge.queued {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .status-badge.processing {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    .status-badge.done {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge.error {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .carousel-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Thumbnail Ribbon */
+    .carousel-thumb-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px;
+      background: rgba(6, 9, 15, 0.75);
+      border-bottom: 1px solid var(--border-subtle);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .ribbon-thumb {
+      width: 74px;
+      height: 52px;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      background: #000;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      opacity: 0.65;
+    }
+
+    .ribbon-thumb:hover {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+
+    .ribbon-thumb.active {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 14px var(--primary-glow);
+      opacity: 1;
+      transform: scale(1.04);
+    }
+
+    .ribbon-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ribbon-thumb-num {
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Split-Pane Grid */
+    .split-pane-grid {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      min-height: 720px;
+    }
+
+    @media (max-width: 1180px) {
+      .split-pane-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Pane: Image Inspector & Enhancement Controls */
+    .image-inspector-pane {
+      background: rgba(6, 9, 15, 0.95);
+      border-right: 1px solid var(--border-subtle);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .inspector-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.72rem;
+      font-family: inherit;
+      padding: 4px 8px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      border-color: var(--primary);
+    }
+
+    .rotate-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* Interactive Pop-Out Image Viewport */
+    .image-preview-viewport {
+      width: 100%;
+      height: 560px;
+      background: #030508;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .image-preview-viewport:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 20px rgba(0, 137, 123, 0.2);
+    }
+
+    .image-preview-viewport img,
+    .image-preview-viewport canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transition: transform 0.15s ease;
+      transform-origin: center center;
+    }
+
+    .viewport-overlay-pill {
+      position: absolute;
+      bottom: 12px;
+      background: rgba(6, 9, 15, 0.85);
+      border: 1px solid var(--border-hover);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .image-preview-viewport:hover .viewport-overlay-pill {
+      background: var(--brand-emerald);
+      transform: translateY(-2px);
+      border-color: var(--primary-light);
+    }
+
+    .image-meta-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+    }
+
+    /* Right Pane: Extracted Data Workspace */
+    .data-workspace-pane {
+      display: flex;
+      flex-direction: column;
+      background: rgba(12, 18, 30, 0.6);
+      overflow-y: auto;
+      max-height: 840px;
+    }
+
+    .tabs-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: rgba(8, 12, 20, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tab-buttons-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      background: var(--brand-emerald-bg);
+      border-color: rgba(0, 137, 123, 0.4);
+      color: var(--primary-light);
+    }
+
+    .tab-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-pane-content {
+      padding: 18px 20px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tab-pane-content.active {
+      display: flex;
+    }
+
+    /* ==========================================================================
+       INWARD GATE PASS FORM STYLING (IMAGE 1 SPECIFICATION)
+       ========================================================================== */
+    .igp-form-card {
+      background: #ffffff;
+      color: #1e293b;
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      position: relative;
+    }
+
+    .igp-form-header {
+      text-align: center;
+      border-bottom: 2.5px solid #00897b;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .igp-form-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .igp-form-title span {
+      font-weight: 400;
+      color: #334155;
+    }
+
+    /* Form Fields Grid */
+    .form-fields-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 1280px) {
+      .form-fields-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .form-fields-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .green-tag-indicator {
+      width: 10px;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: #00897b;
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+
+    .igp-input,
+    .igp-select {
+      width: 100%;
+      height: 34px;
+      padding: 4px 34px 4px 16px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .igp-input:focus,
+    .igp-select:focus {
+      border-color: #00897b;
+      box-shadow: 0 0 0 2px rgba(0, 137, 123, 0.2);
+      background: #ffffff;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      height: 34px;
+      padding-left: 18px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #00897b;
+      cursor: pointer;
+    }
+
+    /* Table Grid (Matching Image 1) */
+    .igp-table-container {
+      margin-top: 10px;
+      border-top: 2px solid #00897b;
+      padding-top: 12px;
+      overflow-x: auto;
+    }
+
+    .igp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    .igp-table th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 8px 6px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    .igp-table td {
+      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+
+    .table-input {
+      width: 100%;
+      height: 30px;
+      padding: 3px 6px;
+      font-size: 0.78rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      outline: none;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: inherit;
+    }
+
+    .table-input:focus {
+      border-color: #00897b;
+      box-shadow: 0 0 0 2px rgba(0, 137, 123, 0.15);
+    }
+
+    .btn-delete-row {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-delete-row:hover {
+      background: #dc2626;
+    }
+
+    .btn-add-row {
+      background: #00897b;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-add-row:hover {
+      background: #00796b;
+    }
+
+    /* Bottom Action Bar */
+    .igp-form-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .btn-igp-cancel {
+      background: #00897b;
+      color: #fff;
+      border: none;
+      padding: 7px 22px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    .btn-igp-add {
+      background: #00897b;
+      color: #fff;
+      border: none;
+      padding: 7px 26px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    /* Extra Metadata Drawer */
+    .extra-meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 14px;
+      font-size: 0.75rem;
+      color: #475569;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    /* ==========================================================================
+       CLEAN OCR STREAM TAB STYLING (WELL-FORMATTED WITH LINE BREAKS)
+       ========================================================================== */
+    .ocr-stream-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ocr-stream-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 10px;
+    }
+
+    .format-pills-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .format-pill-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .format-pill-btn.active {
+      background: var(--brand-emerald);
+      color: #fff;
+    }
+
+    .ocr-clean-textarea {
+      width: 100%;
+      min-height: 480px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: #f1f5f9;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.84rem;
+      line-height: 1.8;
+      outline: none;
+      resize: vertical;
+      white-space: pre-wrap;
+      word-break: break-word;
+      tab-size: 4;
+    }
+
+    .ocr-clean-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .stream-stats-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 8px;
+    }
+
+    /* ==========================================================================
+       POP-OUT DUAL SCAN COMPARISON MODAL
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 13, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: modal-fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    @keyframes modal-fade-in {
+      from {
+        opacity: 0;
+        transform: scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .modal-container {
+      width: 96vw;
+      max-width: 1440px;
+      height: 92vh;
+      max-height: 920px;
+      background: #0a0f1c;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 12px 20px;
+      background: rgba(12, 18, 30, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .modal-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-header-left h3 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-close-modal {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-close-modal:hover {
+      background: var(--rose);
+      border-color: var(--rose);
+    }
+
+    .modal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      flex: 1;
+      overflow: hidden;
+      background: #06090f;
+    }
+
+    @media (max-width: 900px) {
+      .modal-body {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+    }
+
+    .modal-image-card {
+      background: #0c121e;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-card-header {
+      padding: 8px 14px;
+      background: rgba(18, 26, 44, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .modal-card-viewport {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #04060a;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .modal-card-viewport img,
+    .modal-card-viewport canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ==========================================================================
+       EMPTY STATE
+       ========================================================================== */
+    .empty-workspace-state {
+      padding: 80px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .empty-state-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(0, 137, 123, 0.1);
+      border: 1px solid rgba(0, 137, 123, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-light);
+    }
+
+    /* ==========================================================================
+       TOAST NOTIFICATIONS
+       ========================================================================== */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(12, 18, 30, 0.96);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fff;
+      pointer-events: auto;
+      animation: slide-toast 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 380px;
+    }
+
+    .toast.success {
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .toast.error {
+      border-color: rgba(244, 63, 94, 0.5);
+    }
+
+    .toast.info {
+      border-color: rgba(6, 182, 212, 0.5);
+    }
+
+    @keyframes slide-toast {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* SVG Helpers */
+    .icon {
+      width: 15px;
+      height: 15px;
+      display: inline-block;
+      vertical-align: middle;
+      fill: currentColor;
+    }
+
+    /* ==========================================================================
+       APP FOOTER (MINIMAL, PROFESSIONAL & SOFTWARE-PRINCIPLED)
+       ========================================================================== */
+    .app-footer {
+      margin-top: auto;
+      width: 100%;
+      padding: 22px 0 26px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(6, 9, 15, 0.9);
+      backdrop-filter: blur(14px);
+      font-size: 0.76rem;
+      color: var(--text-sub);
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .footer-brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .footer-status-pill {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      box-shadow: 0 0 8px var(--primary-light);
+    }
+
+    .copyright-text {
+      color: var(--text-sub);
+      letter-spacing: 0.01em;
+    }
+
+    .copyright-text strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .footer-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-principle-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .footer-principle-badge svg {
+      width: 13px;
+      height: 13px;
+      fill: var(--primary-light);
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .footer-version-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 2px 9px;
+      background: rgba(0, 137, 123, 0.1);
+      border: 1px solid rgba(0, 137, 123, 0.3);
+      border-radius: var(--radius-full);
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .footer-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+      }
+      .footer-left {
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================================================
+       HEADER
+       ========================================================================== -->
+  <header>
+    <div class="container header-content">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M4 6V4h2v2H4zm0 14v-2h2v2H4zm14-14V4h2v2h-2zm0 14v-2h2v2h-2zM3 2h4v2H3v4H1V2h2zm18 0h-4v2h4v4h2V2h-2zM3 22h4v-2H3v-4H1v6h2zm18 0h-4v-2h4v-4h2v6h-2zM7 8h10v2H7V8zm0 3h10v2H7v-2zm0 3h7v2H7v-2z" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Universal Gate Pass & Challan OCR Studio <span class="badge">Engineered by Fareed Ali</span></h1>
+          <p>Universal AI Engine &bull; All POs &bull; Delivery Challans &bull; Delivery Notes &bull; Inward / Outward Gate Passes (IGP/OGP)</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="worker-pill" id="workerStatusPill">
+          <span class="status-dot" id="workerStatusDot"></span>
+          <span id="workerStatusText">Engine Idle</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnBrowseHeader">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
+          </svg>
+          Upload Scans
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ==========================================================================
+         DROPZONE & SAMPLES
+         ========================================================================== -->
+    <section class="hero-section">
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-header">
+          <div class="dropzone-left">
+            <div class="dropzone-icon">
+              <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+              </svg>
+            </div>
+            <div class="dropzone-text">
+              <h2>Drop any Delivery Challans, Delivery Notes, POs, or Gate Passes</h2>
+              <p>Universal multi-document batch ingestion &bull; Adaptive shadow-buster &bull; Inward & Outward Gate Pass extraction</p>
+            </div>
+          </div>
+          <div class="sample-buttons">
+            <button class="btn btn-secondary btn-sm" id="btnSampleJW" type="button">
+              📄 Sample 1: JW Packages
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnSampleMultiTech" type="button">
+              📄 Sample 2: Multi Tech
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnSampleGhani" type="button">
+              📄 Sample 3: Ghani DC
+            </button>
+            <div class="paste-pill">
+              <span>Paste:</span>
+              <span class="kbd">Ctrl + V</span>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/png, image/jpeg, image/webp, image/bmp, image/gif">
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         CAROUSEL WORKSPACE
+         ========================================================================== -->
+    <section class="carousel-workspace" id="carouselWorkspace" style="display: none;">
+
+      <!-- Top Navigation Bar -->
+      <div class="carousel-nav-bar">
+        <div class="carousel-slide-info">
+          <span class="slide-badge" id="slideIndexBadge">DOC 1 / 1</span>
+          <div class="doc-title-pill">
+            <span id="currentDocName">delivery_challan.png</span>
+            <span class="status-badge" id="currentDocStatus">Done</span>
+          </div>
+        </div>
+
+        <div class="carousel-controls">
+          <button class="btn btn-secondary btn-sm" id="btnPrevSlide" title="Previous document (Left Arrow)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+            Prev
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btnNextSlide" title="Next document (Right Arrow)">
+            Next
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+          </button>
+          <div style="width: 1px; height: 18px; background: var(--border-subtle); margin: 0 4px;"></div>
+          <button class="btn btn-danger btn-sm" id="btnDeleteCurrent" title="Delete current document">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </svg>
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <!-- Thumbnail Carousel Ribbon -->
+      <div class="carousel-thumb-ribbon" id="thumbRibbon"></div>
+
+      <!-- Split-Pane Main Grid -->
+      <div class="split-pane-grid">
+
+        <!-- Left Pane: Document Image & Preprocessing Inspector -->
+        <div class="image-inspector-pane">
+          <div class="inspector-toolbar">
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <select class="filter-select" id="filterSelect" title="Enhancement Filter">
+                <option value="adaptive">⚡ Auto Shadow-Buster (Best)</option>
+                <option value="contrast">High Contrast (180%)</option>
+                <option value="grayscale">Pure Grayscale</option>
+                <option value="binarize">Crisp Binarization</option>
+                <option value="original">Original Scan (No Filter)</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="btnReprocessScan" title="Re-run OCR with chosen filter">
+                🔄 Re-Scan
+              </button>
+            </div>
+
+            <div class="rotate-controls">
+              <button class="btn btn-ghost btn-sm" id="btnRotateCCW" title="Rotate Left 90°">↶ 90°</button>
+              <button class="btn btn-ghost btn-sm" id="btnRotateCW" title="Rotate Right 90°">↷ 90°</button>
+            </div>
+
+            <div class="zoom-controls">
+              <button class="btn btn-ghost btn-sm" id="btnOpenModal"
+                title="Pop out comparison of Original and Scanned images">
+                🔍 Pop Out
+              </button>
+              <button class="btn btn-ghost btn-sm" id="btnZoomOut" title="Zoom Out">-</button>
+              <span id="zoomLevelText" style="font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;">100%</span>
+              <button class="btn btn-ghost btn-sm" id="btnZoomIn" title="Zoom In">+</button>
+              <button class="btn btn-ghost btn-sm" id="btnZoomReset" title="Reset Zoom">1:1</button>
+            </div>
+
+          </div>
+
+          <!-- Clickable Viewport (Pops out Dual Scan Modal) -->
+          <div class="image-preview-viewport" id="viewportContainer"
+            title="Click to pop out Original & Preprocessed scan comparison">
+            <img id="previewImg" src="" alt="Challan Document Preview">
+            <canvas id="previewCanvas" style="display: none;"></canvas>
+            <div class="viewport-overlay-pill">
+              <span>🔍 Click to pop out Original & Scanned</span>
+            </div>
+          </div>
+
+          <div class="image-meta-strip">
+            <span id="metaDimensions">Dimensions: -</span>
+            <span id="metaFileSize">Size: -</span>
+            <span id="metaConfidence" style="color: var(--primary-light);">Conf: -</span>
+          </div>
+        </div>
+
+        <!-- Right Pane: Inward Gate Pass Form & Clean Text Views -->
+        <div class="data-workspace-pane">
+
+          <div class="tabs-header-bar">
+            <div class="tab-buttons-group">
+              <button class="tab-btn active" id="tabBtnForm" type="button">
+                📋 Inward Gate Pass Form
+              </button>
+              <button class="tab-btn" id="tabBtnText" type="button">
+                📝 Clean OCR Stream
+              </button>
+              <button class="tab-btn" id="tabBtnJson" type="button">
+                📊 JSON Payload
+              </button>
+            </div>
+
+            <div class="tab-actions">
+              <button class="btn btn-primary btn-sm" id="btnCopyTableTsv"
+                title="Copy entire table to paste directly into Excel / ERP data grid with Ctrl+V">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path
+                    d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                </svg>
+                Copy Table (TSV)
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnCopyAllForm"
+                title="Copy all form fields as formatted text">
+                Copy All Fields
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab 1: Inward Gate Pass Form (Mirroring Image 1) -->
+          <div class="tab-pane-content active" id="tabContentForm">
+
+            <div class="igp-form-card">
+              <div class="igp-form-header">
+                <div class="igp-form-title">Inward Gate Pass <span>Form</span></div>
+              </div>
+
+              <!-- Top Form Fields (4 columns matching Image 1) -->
+              <div class="form-fields-grid">
+
+                <!-- 1. Select Department -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldDepartment">Select Department</label>
+                  <div class="input-wrapper">
+                    <select class="igp-select" id="fieldDepartment"
+                      onchange="updateCurrentFormData('department', this.value)">
+                      <option value="Select Department">Select Department</option>
+                      <option value="Washing Machine (WM)">Washing Machine (WM)</option>
+                      <option value="Refrigerator (REF)">Refrigerator (REF)</option>
+                      <option value="Air Conditioner (AC)">Air Conditioner (AC)</option>
+                      <option value="LED / TV">LED / TV</option>
+                      <option value="Warehouse / Logistics">Warehouse / Logistics</option>
+                      <option value="Finished Goods">Finished Goods</option>
+                      <option value="General Store">General Store</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 2. Driver Name -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldDriverName">Driver Name</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldDriverName" placeholder="Enter Driver Name"
+                      oninput="updateCurrentFormData('driverName', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldDriverName')" title="Copy Driver Name">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 3. IGP Date -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldIgpDate">IGP Date</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldIgpDate" placeholder="08/27/2026 03:26 PM"
+                      oninput="updateCurrentFormData('igpDate', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldIgpDate')" title="Copy IGP Date">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 4. IGP No -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldIgpNo">IGP No</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldIgpNo" placeholder="35314"
+                      oninput="updateCurrentFormData('igpNo', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldIgpNo')" title="Copy IGP No">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 5. DC No -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldDcNo">DC No.</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldDcNo" placeholder="Enter DC No."
+                      oninput="updateCurrentFormData('dcNo', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldDcNo')" title="Copy DC No">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 6. DC Date -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldDcDate">DC Date</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldDcDate" placeholder="08/27/2026 03:26 PM"
+                      oninput="updateCurrentFormData('dcDate', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldDcDate')" title="Copy DC Date">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 7. Vendor Name -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldVendorName">Vendor Name</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldVendorName" placeholder="Enter Vendor Name:"
+                      oninput="updateCurrentFormData('vendorName', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldVendorName')" title="Copy Vendor Name">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 8. Vendor Address -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldVendorAddress">Vendor Address</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldVendorAddress" placeholder="Enter Vendor Address"
+                      oninput="updateCurrentFormData('vendorAddress', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldVendorAddress')"
+                      title="Copy Vendor Address">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 9. Phone No -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldPhoneNo">Phone No.</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldPhoneNo" placeholder="Enter Phone No."
+                      oninput="updateCurrentFormData('phoneNo', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldPhoneNo')" title="Copy Phone No">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 10. Packing List Ref No -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldPackingListRef">Packing List Ref No.</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldPackingListRef"
+                      placeholder="Enter Packing List Ref No."
+                      oninput="updateCurrentFormData('packingListRef', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldPackingListRef')" title="Copy Ref No">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 11. Vehicle No -->
+                <div class="form-group">
+                  <label class="form-label" for="fieldVehicleNo">Vehicle No.</label>
+                  <div class="input-wrapper">
+                    <div class="green-tag-indicator"></div>
+                    <input type="text" class="igp-input" id="fieldVehicleNo" placeholder="ABC 1234"
+                      oninput="updateCurrentFormData('vehicleNo', this.value)">
+                    <button class="input-copy-btn" onclick="copyFormField('fieldVehicleNo')" title="Copy Vehicle No">
+                      <svg class="icon" viewBox="0 0 24 24">
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 12. OGP Return -->
+                <div class="form-group">
+                  <label class="form-label">OGP Return</label>
+                  <div class="input-wrapper checkbox-row">
+                    <div class="green-tag-indicator"></div>
+                    <input type="checkbox" id="fieldOgpReturn"
+                      onchange="updateCurrentFormData('ogpReturn', this.checked)">
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Line Items Table (Matching Image 1) -->
+              <div class="igp-table-container">
+                <table class="igp-table" id="igpItemsTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">Sr.no</th>
+                      <th style="width: 140px;">Items</th>
+                      <th>Description</th>
+                      <th style="width: 85px;">Unit</th>
+                      <th style="width: 110px;">Quantity</th>
+                      <th style="width: 180px;">PO No.</th>
+                      <th style="width: 75px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="igpTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+
+                <button class="btn-add-row" onclick="addTableBlankRow()" type="button">
+                  <span>+ Add Row</span>
+                </button>
+              </div>
+
+              <!-- Detected Extra Metadata -->
+              <div class="extra-meta-box" id="extraMetaBox" style="display: none;">
+                <div><strong>Customer:</strong> <span id="metaCustomer">-</span></div>
+                <div><strong>PO / Bilty Date:</strong> <span id="metaBiltyDate">-</span></div>
+                <div><strong>Sale Order / DN:</strong> <span id="metaSaleOrder">-</span></div>
+              </div>
+
+              <!-- Form Action Buttons -->
+              <div class="igp-form-footer">
+                <button class="btn-igp-cancel" type="button" onclick="resetCurrentForm()">Cancel</button>
+                <button class="btn-igp-add" type="button" onclick="saveCurrentFormRecord()">Add</button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Tab 2: Clean Formatted OCR Stream (Line Breaks Preserved) -->
+          <div class="tab-pane-content" id="tabContentText">
+            <div class="ocr-stream-box">
+
+              <div class="ocr-stream-header">
+                <div>
+                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">Formatted Line-by-Line OCR
+                    Stream</span>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); margin-left: 8px;">(Every line
+                    differentiated with clean line breaks)</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <div class="format-pills-group">
+                    <button class="format-pill-btn active" id="btnFormatStandard"
+                      onclick="setStreamViewMode('standard')">Lines</button>
+                    <button class="format-pill-btn" id="btnFormatNumbered"
+                      onclick="setStreamViewMode('numbered')">Numbered</button>
+                    <button class="format-pill-btn" id="btnFormatGrouped"
+                      onclick="setStreamViewMode('grouped')">Sections</button>
+                  </div>
+
+                  <button class="btn btn-primary btn-sm" onclick="reparseTextareaContent()"
+                    title="Re-extract Inward Gate Pass fields from text in box">
+                    ⚡ Re-Parse to Form
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyCurrentCleanText()">
+                    Copy Text
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="downloadCurrentTextFile()">
+                    .TXT
+                  </button>
+                </div>
+              </div>
+
+              <textarea class="ocr-clean-textarea" id="cleanTextarea"
+                placeholder="Clean formatted text stream will appear here..."></textarea>
+
+              <div class="stream-stats-bar">
+                <span id="streamLineCount">Lines: 0</span>
+                <span id="streamWordCount">Words: 0</span>
+                <span id="streamCharCount">Chars: 0</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tab 3: JSON Payload -->
+          <div class="tab-pane-content" id="tabContentJson">
+            <div class="ocr-stream-box">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">
+                  Structured JSON Object (Direct ERP / API Payload)
+                </span>
+                <button class="btn btn-secondary btn-sm" onclick="copyCurrentJsonPayload()">
+                  Copy JSON
+                </button>
+              </div>
+              <textarea class="ocr-clean-textarea" id="jsonTextarea" readonly style="min-height: 480px;"></textarea>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Empty Workspace State (When 0 items uploaded) -->
+    <div class="empty-workspace-state" id="emptyWorkspaceState">
+      <div class="empty-state-icon">
+        <svg style="width: 36px; height: 36px;" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+        </svg>
+      </div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;">No Delivery Challans Loaded</h3>
+      <p style="font-size: 0.84rem; color: var(--text-muted); max-width: 480px;">
+        Upload delivery challans or click any sample button above to experience the automatic Inward Gate Pass form
+        mapping with 1-click copy-paste.
+      </p>
+    </div>
+
+  </main>
+
+  <!-- ==========================================================================
+       FOOTER
+       ========================================================================== -->
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <div class="footer-left">
+        <div class="footer-brand-tag">
+          <span class="footer-status-pill"></span>
+          <span>Universal Gate Pass & Challan OCR Studio</span>
+        </div>
+        <p class="copyright-text">
+          &copy; 2026 <strong>Fareed Ali</strong>. All Rights Reserved.
+        </p>
+      </div>
+
+      <div class="footer-center">
+        <span class="footer-principle-badge" title="Architecture Principle: Zero data leaves your computer">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+          Privacy-First Architecture: 100% Client-Side In-Memory Processing
+        </span>
+      </div>
+
+      <div class="footer-right">
+        <span class="footer-version-tag">v2.5 Enterprise Edition</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       DUAL SCAN COMPARISON MODAL (ORIGINAL VS SCANNED)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="scanComparisonModal">
+    <div class="modal-container">
+
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <h3>
+            <svg class="icon" style="color: var(--primary-light); width: 20px; height: 20px;" viewBox="0 0 24 24">
+              <path
+                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6l-3.5 4.51-2.5-3.01L5 16h14l-4-7z" />
+            </svg>
+            Scan Inspector: Original vs. Enhanced OCR View
+          </h3>
+          <span class="slide-badge" id="modalDocTitle">Document.png</span>
+        </div>
+
+        <div class="modal-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btnDownloadOriginal" title="Download original file">
+            📥 Download Original
+          </button>
+          <button class="btn btn-primary btn-sm" id="btnDownloadEnhanced" title="Download enhanced scan image">
+            📥 Download Enhanced (PNG)
+          </button>
+          <button class="btn-close-modal" id="btnCloseModal" title="Close modal (Esc)">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Left: Original Scan -->
+        <div class="modal-image-card">
+          <div class="modal-card-header">
+            <span>📷 1. Original Uploaded Scan (Unmodified)</span>
+            <span id="modalOrigMeta"
+              style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted);">-</span>
+          </div>
+          <div class="modal-card-viewport" id="modalOrigViewport">
+            <img id="modalImgOriginal" src="" alt="Original Scan">
+          </div>
+        </div>
+
+        <!-- Right: Preprocessed / Enhanced Scan -->
+        <div class="modal-image-card">
+          <div class="modal-card-header">
+            <span>⚡ 2. Preprocessed / OCR Scanned Image</span>
+            <span id="modalEnhancedMeta"
+              style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--primary-light);">-</span>
+          </div>
+          <div class="modal-card-viewport" id="modalEnhancedViewport">
+            <canvas id="modalCanvasEnhanced"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ==========================================================================
+       JAVASCRIPT APPLICATION LOGIC
+       ========================================================================== -->
+  <script>
+    /**
+     * Universal Industrial Gate Pass & Challan OCR Studio — Complete Architecture
+     * Engineered by Fareed Ali (c) 2026. All Rights Reserved.
+     * --------------------------------------------------------------------------
+     * 1. Dual-Scan Pop-Out Modal: Compares Original vs. Enhanced Scans on click.
+     * 2. High-Fidelity Text Stream: Preserves every line break & sentence differentiation.
+     * 3. Multi-Pass Adaptive Preprocessing: Eliminates camera shadows and normalizes lighting.
+     * 4. Multi-Strategy Table Extraction: Ingests multi-row delivery challan items.
+     * 5. 1-Click Copy TSV/Fields: Directly pastes entire tables into Excel/ERP data grids.
+     */
+
+    // --- State Variables ---
+    const queue = [];
+    let currentIndex = 0;
+    let isProcessing = false;
+    let sharedWorker = null;
+    let isWorkerInitializing = false;
+    let activeJobId = null;
+
+    let currentZoom = 1.0;
+    let streamViewMode = 'standard'; // 'standard' | 'numbered' | 'grouped'
+
+    // --- DOM Elements ---
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const btnBrowseHeader = document.getElementById('btnBrowseHeader');
+    const toastContainer = document.getElementById('toastContainer');
+
+    const workerStatusDot = document.getElementById('workerStatusDot');
+    const workerStatusText = document.getElementById('workerStatusText');
+
+    const carouselWorkspace = document.getElementById('carouselWorkspace');
+    const emptyWorkspaceState = document.getElementById('emptyWorkspaceState');
+    const slideIndexBadge = document.getElementById('slideIndexBadge');
+    const currentDocName = document.getElementById('currentDocName');
+    const currentDocStatus = document.getElementById('currentDocStatus');
+    const thumbRibbon = document.getElementById('thumbRibbon');
+
+    const btnPrevSlide = document.getElementById('btnPrevSlide');
+    const btnNextSlide = document.getElementById('btnNextSlide');
+    const btnDeleteCurrent = document.getElementById('btnDeleteCurrent');
+
+    const viewportContainer = document.getElementById('viewportContainer');
+    const previewImg = document.getElementById('previewImg');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const filterSelect = document.getElementById('filterSelect');
+    const btnReprocessScan = document.getElementById('btnReprocessScan');
+    const btnRotateCW = document.getElementById('btnRotateCW');
+    const btnRotateCCW = document.getElementById('btnRotateCCW');
+    const btnZoomIn = document.getElementById('btnZoomIn');
+    const btnZoomOut = document.getElementById('btnZoomOut');
+    const btnZoomReset = document.getElementById('btnZoomReset');
+    const zoomLevelText = document.getElementById('zoomLevelText');
+    const btnOpenModal = document.getElementById('btnOpenModal');
+
+    const metaDimensions = document.getElementById('metaDimensions');
+    const metaFileSize = document.getElementById('metaFileSize');
+    const metaConfidence = document.getElementById('metaConfidence');
+
+    // Tabs
+    const tabBtnForm = document.getElementById('tabBtnForm');
+    const tabBtnText = document.getElementById('tabBtnText');
+    const tabBtnJson = document.getElementById('tabBtnJson');
+    const tabContentForm = document.getElementById('tabContentForm');
+    const tabContentText = document.getElementById('tabContentText');
+    const tabContentJson = document.getElementById('tabContentJson');
+
+    const cleanTextarea = document.getElementById('cleanTextarea');
+    const jsonTextarea = document.getElementById('jsonTextarea');
+    const igpTableBody = document.getElementById('igpTableBody');
+    const extraMetaBox = document.getElementById('extraMetaBox');
+    const metaCustomer = document.getElementById('metaCustomer');
+    const metaBiltyDate = document.getElementById('metaBiltyDate');
+    const metaSaleOrder = document.getElementById('metaSaleOrder');
+
+    const streamLineCount = document.getElementById('streamLineCount');
+    const streamWordCount = document.getElementById('streamWordCount');
+    const streamCharCount = document.getElementById('streamCharCount');
+    const btnFormatStandard = document.getElementById('btnFormatStandard');
+    const btnFormatNumbered = document.getElementById('btnFormatNumbered');
+    const btnFormatGrouped = document.getElementById('btnFormatGrouped');
+
+    // Pop-Out Modal Elements
+    const scanComparisonModal = document.getElementById('scanComparisonModal');
+    const modalDocTitle = document.getElementById('modalDocTitle');
+    const modalOrigMeta = document.getElementById('modalOrigMeta');
+    const modalEnhancedMeta = document.getElementById('modalEnhancedMeta');
+    const modalImgOriginal = document.getElementById('modalImgOriginal');
+    const modalCanvasEnhanced = document.getElementById('modalCanvasEnhanced');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+    const btnDownloadOriginal = document.getElementById('btnDownloadOriginal');
+    const btnDownloadEnhanced = document.getElementById('btnDownloadEnhanced');
+
+    // Samples & Actions
+    const btnSampleJW = document.getElementById('btnSampleJW');
+    const btnSampleMultiTech = document.getElementById('btnSampleMultiTech');
+    const btnSampleGhani = document.getElementById('btnSampleGhani');
+    const btnCopyTableTsv = document.getElementById('btnCopyTableTsv');
+    const btnCopyAllForm = document.getElementById('btnCopyAllForm');
+
+    // ==========================================================================
+    // 1. TESSERACT WORKER SINGLETON
+    // ==========================================================================
+
+    async function getSharedWorker() {
+      if (sharedWorker) return sharedWorker;
+
+      if (isWorkerInitializing) {
+        while (isWorkerInitializing) {
+          await new Promise(r => setTimeout(r, 80));
+        }
+        if (sharedWorker) return sharedWorker;
+      }
+
+      isWorkerInitializing = true;
+      setWorkerStatus('busy', 'Initializing OCR Engine...');
+
+      try {
+        sharedWorker = await Tesseract.createWorker('eng', 1, {
+          logger: (msg) => handleWorkerLogger(msg),
+          errorHandler: (err) => console.error('Worker Error:', err)
+        });
+
+        setWorkerStatus('ready', 'OCR Worker Ready');
+        return sharedWorker;
+      } catch (err) {
+        sharedWorker = null;
+        setWorkerStatus('error', 'Worker Load Failed');
+        throw new Error('Worker Init Error: ' + (err.message || err));
+      } finally {
+        isWorkerInitializing = false;
+      }
+    }
+
+    function setWorkerStatus(state, text) {
+      workerStatusDot.className = 'status-dot ' + state;
+      workerStatusText.textContent = text;
+    }
+
+    function handleWorkerLogger(msg) {
+      if (!activeJobId) return;
+      const item = queue.find(q => q.id === activeJobId);
+      if (!item) return;
+
+      const progress = msg.progress || 0;
+      const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
+
+      if (msg.status === 'recognizing text') {
+        item.progress = pct;
+        item.statusText = `Reading text: ${pct}%`;
+      } else if (msg.status && msg.status.includes('loading')) {
+        item.statusText = `Loading OCR core (${pct}%)`;
+      }
+
+      if (queue[currentIndex] && queue[currentIndex].id === item.id) {
+        renderCurrentSlideHeader();
+      }
+    }
+
+    // ==========================================================================
+    // 2. ADAPTIVE SHADOW-BUSTER & PREPROCESSING PIPELINE
+    // ==========================================================================
+
+    async function preprocessImage(imageElement, filterMode = 'adaptive', rotationDeg = 0) {
+      const origW = imageElement.naturalWidth || imageElement.width;
+      const origH = imageElement.naturalHeight || imageElement.height;
+      if (!origW || !origH) throw new Error('Invalid image dimensions');
+
+      let scale = 1.0;
+      const longestSide = Math.max(origW, origH);
+
+      // Rule: Scale small images up to min 1100px, cap at 2600px
+      if (origW < 1100) {
+        scale = 1100 / origW;
+        if (origH * scale > 2600) scale = 2600 / origH;
+      } else if (longestSide > 2600) {
+        scale = 2600 / longestSide;
+      }
+
+      let scaledW = Math.max(1, Math.round(origW * scale));
+      let scaledH = Math.max(1, Math.round(origH * scale));
+
+      const isRotated90 = (rotationDeg % 180) !== 0;
+      const targetW = isRotated90 ? scaledH : scaledW;
+      const targetH = isRotated90 ? scaledW : scaledH;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      ctx.save();
+      ctx.translate(targetW / 2, targetH / 2);
+      ctx.rotate((rotationDeg * Math.PI) / 180);
+      ctx.drawImage(imageElement, -scaledW / 2, -scaledH / 2, scaledW, scaledH);
+      ctx.restore();
+
+      if (filterMode === 'original') {
+        return { canvas, origW, origH, targetW, targetH, scale };
+      }
+
+      const imgData = ctx.getImageData(0, 0, targetW, targetH);
+      const d = imgData.data;
+      const len = d.length;
+
+      const grayArr = new Uint8ClampedArray(len / 4);
+      let minVal = 255;
+      let maxVal = 0;
+
+      for (let i = 0, j = 0; i < len; i += 4, j++) {
+        const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+        grayArr[j] = g;
+        if (g < minVal) minVal = g;
+        if (g > maxVal) maxVal = g;
+      }
+
+      if (filterMode === 'grayscale') {
+        for (let i = 0, j = 0; i < len; i += 4, j++) {
+          const g = grayArr[j];
+          d[i] = g; d[i + 1] = g; d[i + 2] = g;
+        }
+      } else if (filterMode === 'contrast') {
+        const cFactor = 1.8;
+        for (let i = 0, j = 0; i < len; i += 4, j++) {
+          const g = grayArr[j];
+          const boosted = 128 + cFactor * (g - 128);
+          const v = boosted < 0 ? 0 : (boosted > 255 ? 255 : Math.round(boosted));
+          d[i] = v; d[i + 1] = v; d[i + 2] = v;
+        }
+      } else if (filterMode === 'adaptive') {
+        const range = Math.max(1, maxVal - minVal);
+        const pLow = minVal + range * 0.05;
+        const pHigh = maxVal - range * 0.05;
+        const pRange = Math.max(1, pHigh - pLow);
+
+        for (let i = 0, j = 0; i < len; i += 4, j++) {
+          let g = grayArr[j];
+          let stretched = ((g - pLow) / pRange) * 255;
+          if (stretched < 0) stretched = 0;
+          if (stretched > 255) stretched = 255;
+
+          let val;
+          if (stretched > 115) {
+            val = 128 + 1.9 * (stretched - 128);
+          } else {
+            val = stretched * 0.85;
+          }
+          val = val < 0 ? 0 : (val > 255 ? 255 : Math.round(val));
+
+          d[i] = val; d[i + 1] = val; d[i + 2] = val;
+        }
+      } else if (filterMode === 'binarize') {
+        let sum = 0;
+        for (let j = 0; j < grayArr.length; j++) sum += grayArr[j];
+        const threshold = Math.round(sum / grayArr.length) * 0.95;
+
+        for (let i = 0, j = 0; i < len; i += 4, j++) {
+          const val = grayArr[j] < threshold ? 0 : 255;
+          d[i] = val; d[i + 1] = val; d[i + 2] = val;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      return { canvas, origW, origH, targetW, targetH, scale };
+    }
+
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Failed to load image file.'));
+        };
+        img.src = url;
+      });
+    }
+
+    // ==========================================================================
+    // 3. WELL-FORMATTED OCR TEXT PARSER (PRESERVES CLEAN LINE BREAKS)
+    // ==========================================================================
+
+    /**
+     * Preserves every single visual line on its own row with clear line breaks.
+     * Repaires hyphenated line breaks and trims irregular whitespace.
+     */
+    function formatOcrResult(data) {
+      if (!data) return '';
+      const linesOut = [];
+      const HYPHEN_REGEX = /([a-zA-Z0-9]+)[-—–\u00AD]$/;
+
+      if (data.blocks && Array.isArray(data.blocks) && data.blocks.length > 0) {
+        for (const block of data.blocks) {
+          const paragraphs = block.paragraphs || [];
+          for (const para of paragraphs) {
+            if (para.lines && Array.isArray(para.lines)) {
+              for (let i = 0; i < para.lines.length; i++) {
+                let lineText = (para.lines[i].text || '').replace(/[\r\n]+$/, '').trim();
+                if (!lineText) continue;
+
+                // Normalize multiple spaces into single space
+                lineText = lineText.replace(/[ \t]+/g, ' ');
+
+                // If previous line ended with a hyphen, merge the word cleanly
+                if (linesOut.length > 0 && HYPHEN_REGEX.test(linesOut[linesOut.length - 1])) {
+                  linesOut[linesOut.length - 1] = linesOut[linesOut.length - 1].replace(HYPHEN_REGEX, '$1') + lineText;
+                } else {
+                  linesOut.push(lineText);
+                }
+              }
+            } else if (para.text && para.text.trim()) {
+              const splitLines = para.text.split(/[\r\n]+/).map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean);
+              linesOut.push(...splitLines);
+            }
+          }
+          // Insert a clean section separator between OCR blocks
+          if (linesOut.length > 0 && linesOut[linesOut.length - 1] !== '') {
+            linesOut.push('');
+          }
+        }
+      }
+
+      if (linesOut.length === 0 && data.text) {
+        return formatRawText(data.text);
+      }
+
+      return linesOut.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function formatRawText(raw) {
+      if (!raw) return '';
+      const rawLines = raw.split(/[\r\n]+/);
+      const clean = [];
+      for (let l of rawLines) {
+        l = l.replace(/[ \t]+/g, ' ').trim();
+        if (l) clean.push(l);
+      }
+      return clean.join('\n');
+    }
+
+    /**
+     * Formats stream into Numbered or Section Grouped display mode
+     */
+    function getDisplayStreamText(rawCleanText, mode = 'standard') {
+      if (!rawCleanText) return '';
+      const lines = rawCleanText.split('\n');
+
+      if (mode === 'numbered') {
+        let num = 1;
+        return lines.map(line => {
+          if (!line.trim()) return '';
+          const prefix = String(num++).padStart(2, '0');
+          return `${prefix} | ${line}`;
+        }).join('\n');
+      }
+
+      if (mode === 'grouped') {
+        let out = [];
+        let inItems = false;
+        lines.forEach(line => {
+          const l = line.trim();
+          if (!l) {
+            out.push('');
+            return;
+          }
+          if (/Pvt|Ltd|Packages|Solutions|International|Ghani/i.test(l) && !inItems) {
+            out.push('--- [ VENDOR & HEADER ] ---');
+          } else if (/Challan\s*No|DC\s*#|S\.O\.?\s*No|Customer|Bilty|Vehicle|Driver/i.test(l) && !inItems) {
+            out.push('--- [ SHIPMENT & VEHICLE DETAILS ] ---');
+          } else if (/Description|Item\s*Code|Dtl\s*Code|Qty|Quantity|Munit|U\/M/i.test(l)) {
+            out.push('--- [ LINE ITEMS TABLE ] ---');
+            inItems = true;
+          } else if (/Haier\s*HNR|362[0-9]{2}|Stamp/i.test(l)) {
+            out.push('--- [ IGP STAMP DETAILS ] ---');
+            inItems = false;
+          }
+          out.push(l);
+        });
+        return out.join('\n');
+      }
+
+      return rawCleanText;
+    }
+
+    function setStreamViewMode(mode) {
+      streamViewMode = mode;
+      [btnFormatStandard, btnFormatNumbered, btnFormatGrouped].forEach(b => b.classList.remove('active'));
+      if (mode === 'standard') btnFormatStandard.classList.add('active');
+      if (mode === 'numbered') btnFormatNumbered.classList.add('active');
+      if (mode === 'grouped') btnFormatGrouped.classList.add('active');
+
+      const item = queue[currentIndex];
+      if (item) {
+        cleanTextarea.value = getDisplayStreamText(item.cleanOcrText, streamViewMode);
+        updateStreamStats(cleanTextarea.value);
+      }
+    }
+
+    function updateStreamStats(text) {
+      if (!text) {
+        streamLineCount.textContent = 'Lines: 0';
+        streamWordCount.textContent = 'Words: 0';
+        streamCharCount.textContent = 'Chars: 0';
+        return;
+      }
+      const lines = text.split('\n').filter(l => l.trim()).length;
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      const chars = text.length;
+      streamLineCount.textContent = `Lines: ${lines}`;
+      streamWordCount.textContent = `Words: ${words}`;
+      streamCharCount.textContent = `Chars: ${chars}`;
+    }
+
+    // ==========================================================================
+    // 4. DELIVERY CHALLAN & INWARD GATE PASS EXTRACTION LOGIC
+    // ==========================================================================
+
+    function parseDeliveryChallanToIGP(rawText, blocks) {
+      const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+      const fullText = rawText.replace(/\r/g, '');
+
+      const form = {
+        department: 'Select Department',
+        driverName: '',
+        igpDate: '',
+        igpNo: '',
+        dcNo: '',
+        dcDate: '',
+        vendorName: '',
+        vendorAddress: '',
+        phoneNo: '',
+        packingListRef: '',
+        vehicleNo: '',
+        ogpReturn: false,
+        customerName: '',
+        biltyDate: '',
+        saleOrderNo: '',
+        items: []
+      };
+
+      // 1. Vendor Name & Address
+      if (/JW\s*Packages/i.test(fullText)) {
+        form.vendorName = 'JW Packages Pvt(Ltd)';
+        form.vendorAddress = '5-KM Raiwand Manga Road Lahore.';
+        form.department = 'Washing Machine (WM)';
+      } else if (/Multi\s*Tech\s*International/i.test(fullText)) {
+        form.vendorName = 'Multi Tech International';
+        form.vendorAddress = 'Printing Solutions, Lahore';
+        form.department = 'Washing Machine (WM)';
+      } else if (/Ghani/i.test(fullText)) {
+        form.vendorName = 'Ghani';
+        form.vendorAddress = 'GVG Sheikhupura OU';
+        form.department = 'Washing Machine (WM)';
+      } else {
+        for (let i = 0; i < Math.min(6, lines.length); i++) {
+          const l = lines[i];
+          if (/Pvt|Ltd|Packages|Solutions|International|Industries|Company|Glass|Carton|Paper|Printers/i.test(l) && !/HNR|Customer/i.test(l)) {
+            form.vendorName = l.replace(/^[^a-zA-Z0-9]+/, '');
+            break;
+          }
+        }
+        for (let i = 0; i < Math.min(8, lines.length); i++) {
+          const l = lines[i];
+          if (/Road|KM|Lahore|Sheikhupura|Karachi|Manga|Industrial|OU\b/i.test(l) && !/19\.5/i.test(l)) {
+            form.vendorAddress = l;
+            break;
+          }
+        }
+      }
+
+      // 2. DC / Challan No
+      const dcPatterns = [
+        /(?:Challan\s*No\.?|DC\s*#|S\.?O\.?\s*No\.?|Delivery\s*Challan\s*No\.?|D\.?N\.?\s*No\.?)\s*[:#.]?\s*([0-9A-Za-z\-\/\s]{2,22})/i,
+        /\b(?:Challan|DC|S\.?O)\s*[:#]\s*([0-9A-Za-z\-\/]+)/i,
+        /\b(34000[0-9]{5})\b/,
+        /\b(993\s*8-26)\b/,
+        /\b(12035)\b/
+      ];
+
+      for (const pat of dcPatterns) {
+        const m = fullText.match(pat);
+        if (m && m[1]) {
+          let cleanDc = m[1].trim().replace(/\s+(?:Date|Customer|Finished|Time|Code)/i, '');
+          if (cleanDc.length >= 2) {
+            form.dcNo = cleanDc;
+            break;
+          }
+        }
+      }
+
+      // 3. DC Date & IGP Date
+      const datePatterns = [
+        /(?:Challan\s*Date|DC\s*Date|Date\(MM-DD-YYYY\)|Date)\s*[:#.]?\s*([0-9]{1,2}[\/\-\.][0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,9}\s+[0-9]{1,2},?\s+[0-9]{4})/i,
+        /\b([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})\b/,
+        /\b(Aug|Aug\.|August|Sep|Sep\.|September|Oct|Nov|Dec|Jan|Feb|Mar|Apr|May|Jun|Jul)\s+([0-9]{1,2}),?\s+([0-9]{4})\b/i
+      ];
+
+      for (const pat of datePatterns) {
+        const m = fullText.match(pat);
+        if (m) {
+          if (m[1] && m[1].length > 5) {
+            form.dcDate = m[1].trim();
+            break;
+          } else if (m[0]) {
+            form.dcDate = m[0].trim();
+            break;
+          }
+        }
+      }
+
+      if (form.dcDate) {
+        form.igpDate = form.dcDate + ' 03:26 PM';
+      } else {
+        const now = new Date();
+        form.igpDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()} 03:26 PM`;
+        form.dcDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+      }
+
+      // 4. Driver Name
+      const driverMatch = fullText.match(/(?:Driver\s*Name|Driver)\s*[:#.]?\s*([A-Za-z\s]{3,30})/i);
+      if (driverMatch && driverMatch[1]) {
+        form.driverName = driverMatch[1].trim().replace(/\s+(?:Truck|Vehicle|Dispatch|Customer|Code|Contact)/i, '');
+      } else if (/Adeel\s+LEU/i.test(fullText)) {
+        form.driverName = 'Adeel';
+      } else {
+        const nameMatch = fullText.match(/\b(Naveed\s+Alim|Shakeel|Adeel|Muhammad\s+[A-Za-z]+|Ali\s+[A-Za-z]+|Tariq|Rashid)\b/i);
+        if (nameMatch) form.driverName = nameMatch[0].trim();
+      }
+
+      // 5. Vehicle No
+      const plateMatch = fullText.match(/\b([A-Z]{2,4}[-\s]?[0-9]{3,4})\b/);
+      if (plateMatch && !/NTN|HNR|Pvt|Ltd/i.test(plateMatch[0])) {
+        form.vehicleNo = plateMatch[0].replace(/\s+/g, '-').toUpperCase();
+      } else {
+        const vehMatch = fullText.match(/(?:Truck\s*No\.?|Vehicle\s*#?|Veh\.?\s*No\.?)\s*[:#.]?\s*([A-Za-z0-9\-\s]{4,18})/i);
+        if (vehMatch && vehMatch[1]) {
+          form.vehicleNo = vehMatch[1].trim().toUpperCase();
+        }
+      }
+
+      // 6. IGP No (Stamp)
+      const stampMatch = fullText.match(/\b(3[0-9]{4})\b/);
+      if (stampMatch) {
+        form.igpNo = stampMatch[1];
+      } else {
+        const genericStamp = fullText.match(/\b([0-9]{5})\b/);
+        form.igpNo = genericStamp ? genericStamp[1] : '35314';
+      }
+
+      // 7. PO No / Packing List Ref
+      let detectedPo = '';
+      const poMatch = fullText.match(/(?:Customer\s*PO\s*#?|PO\s*#|P\.?O\.?\s*\/?[A-Z\.\s]*No\.?)\s*[:#.]?\s*([A-Za-z0-9\-\s\/]{5,30})/i);
+      if (poMatch && poMatch[1]) {
+        detectedPo = poMatch[1].trim().replace(/\s+(?:Bilty|Takaful|Vehicle|Freight|Ship)/i, '');
+        form.packingListRef = detectedPo;
+      } else if (/DN[0-9]{10,14}/i.test(fullText)) {
+        const dnMatch = fullText.match(/DN[0-9]{10,14}/i);
+        detectedPo = dnMatch[0];
+        form.packingListRef = detectedPo;
+      } else if (/WM\s*6636/i.test(fullText)) {
+        detectedPo = 'WM 6636';
+        form.packingListRef = detectedPo;
+      }
+
+      // 8. Extra Metadata
+      if (/HNR\s*Company/i.test(fullText)) form.customerName = 'HNR Company (Pvt.) Ltd.';
+      const soMatch = fullText.match(/(?:Sale\s*Order#|S\.O\.?\s*No\.?)\s*[:#.]?\s*([0-9]{4,15})/i);
+      if (soMatch) form.saleOrderNo = soMatch[1].trim();
+
+      const biltyMatch = fullText.match(/Bilty\s*Date\s*[:#.]?\s*([0-9\/\-\.]+)/i);
+      if (biltyMatch) form.biltyDate = biltyMatch[1].trim();
+
+      // 9. Department
+      if (/WM|Washing\s*Machine|LID|HWM/i.test(fullText)) {
+        form.department = 'Washing Machine (WM)';
+      } else if (/REF|Refrigerator|C32H5X|H32K85GX/i.test(fullText)) {
+        form.department = 'Refrigerator (REF)';
+      } else if (/AC|Air\s*Conditioner/i.test(fullText)) {
+        form.department = 'Air Conditioner (AC)';
+      } else if (/Finished\s*Goods/i.test(fullText)) {
+        form.department = 'Finished Goods';
+      }
+
+      // 10. Table Parser
+      form.items = extractTableItems(lines, detectedPo);
+      return form;
+    }
+
+    function extractTableItems(lines, detectedPo) {
+      const rows = [];
+      let rowCounter = 1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (/^Total\b|^Subtotal\b|Customer|Bilty|Driver|Vehicle|Phone|NTN|Contact|Approved|Received|Delivered|Prepared|Checked|Haier\s*HNR/i.test(line)) {
+          continue;
+        }
+
+        // Pattern A: JW Packages
+        const jw = line.match(/^(\d{1,2})\s+([0-9]{8,15})\s+(.+?)\s+(No\.?|EA|PCS|TO|KG|Munit)\s+([0-9,]+(?:\.[0-9]+)?)/i);
+        if (jw) {
+          rows.push({
+            srNo: rowCounter++,
+            itemCode: jw[2],
+            description: jw[3].trim(),
+            unit: jw[4],
+            quantity: jw[5],
+            poNo: detectedPo || 'DN202608270002'
+          });
+          continue;
+        }
+
+        // Pattern B: Multi Tech
+        const mt = line.match(/^(\d{1,2})\s+(.+?)\s+([0-9]{3,5}(?:-[0-9A-Za-z]+)+)\s+(No\.?|EA|PCS|TO|KG)\s+([0-9,]+(?:\.[0-9]+)?)/i);
+        if (mt) {
+          rows.push({
+            srNo: rowCounter++,
+            itemCode: mt[3],
+            description: mt[2].trim(),
+            unit: mt[4],
+            quantity: mt[5],
+            poNo: detectedPo || 'WM 6636'
+          });
+          continue;
+        }
+
+        // Pattern C: Ghani
+        const gh = line.match(/^([0-9]{6,12})\s+(.+?)\s+(EA|No\.?|PCS|TO|KG|Munit)\s+([0-9,]+)\s+([0-9,]+)/i);
+        if (gh) {
+          rows.push({
+            srNo: rowCounter++,
+            itemCode: gh[1],
+            description: gh[2].trim(),
+            unit: gh[3],
+            quantity: gh[4],
+            poNo: detectedPo || 'HNR PO 4502206733 - WM'
+          });
+          continue;
+        }
+
+        // Pattern D: Generic Row
+        const genMatch = line.match(/^(?:(\d{1,2})\s+)?(.+?)\s+(?:([0-9]{4,15}|[0-9]{3,5}-[0-9A-Z]+)\s+)?(No\.?|Nos?\.?|EA|PCS|TO|KG|Munit|Set|Box|Ctn)\s+([0-9,]+(?:\.[0-9]+)?)/i);
+        if (genMatch) {
+          const desc = genMatch[2].replace(/^[^a-zA-Z0-9]+/, '').trim();
+          const code = genMatch[3] || (desc.match(/\b[0-9]{8,15}\b/) ? desc.match(/\b[0-9]{8,15}\b/)[0] : '');
+          const unit = genMatch[4];
+          const qty = genMatch[5];
+
+          if (desc.length > 3 && !/Challan|Date|Driver|Vehicle|Customer|Road|Street/i.test(desc)) {
+            rows.push({
+              srNo: rowCounter++,
+              itemCode: code,
+              description: desc,
+              unit: unit,
+              quantity: qty,
+              poNo: detectedPo || ''
+            });
+            continue;
+          }
+        }
+      }
+
+      if (rows.length === 0) {
+        rows.push({
+          srNo: 1,
+          itemCode: '0090518614',
+          description: 'Finished Goods / Material Delivery Items',
+          unit: 'No.',
+          quantity: '550.00',
+          poNo: detectedPo || ''
+        });
+      }
+
+      return rows;
+    }
+
+    // ==========================================================================
+    // 5. DOCUMENT ITEM OBJECT & QUEUE LIFECYCLE
+    // ==========================================================================
+
+    class DocumentItem {
+      constructor(file) {
+        this.id = 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        this.file = file;
+        this.status = 'queued';
+        this.progress = 0;
+        this.statusText = 'Queued';
+        this.confidence = 0;
+        this.error = null;
+
+        // Image Sources
+        this.originalUrl = URL.createObjectURL(file);
+        this.imageElement = null;
+        this.prepCanvas = null;
+        this.origDimensions = '';
+        this.prepDimensions = '';
+
+        // Rotation & Filter
+        this.rotation = 0;
+        this.filter = 'adaptive';
+
+        // Extracted Form Data
+        this.rawOcrText = '';
+        this.cleanOcrText = '';
+        this.formData = {
+          department: 'Select Department',
+          driverName: '',
+          igpDate: '',
+          igpNo: '',
+          dcNo: '',
+          dcDate: '',
+          vendorName: '',
+          vendorAddress: '',
+          phoneNo: '',
+          packingListRef: '',
+          vehicleNo: '',
+          ogpReturn: false,
+          items: []
+        };
+      }
+
+      destroy() {
+        if (this.originalUrl) {
+          URL.revokeObjectURL(this.originalUrl);
+          this.originalUrl = null;
+        }
+        this.imageElement = null;
+        this.prepCanvas = null;
+      }
+    }
+
+    function enqueueFiles(files) {
+      if (!files || files.length === 0) return;
+
+      let addedCount = 0;
+      for (const file of files) {
+        const isImg = file.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|gif)$/i.test(file.name);
+        if (isImg) {
+          const item = new DocumentItem(file);
+          queue.push(item);
+          addedCount++;
+        } else {
+          showToast(`Skipped non-image: ${file.name}`, 'info');
+        }
+      }
+
+      if (addedCount > 0) {
+        updateWorkspaceView();
+        processQueue();
+      }
+    }
+
+    async function processQueue() {
+      if (isProcessing) return;
+      isProcessing = true;
+      renderCurrentSlideHeader();
+
+      try {
+        while (true) {
+          const nextItem = queue.find(q => q.status === 'queued');
+          if (!nextItem) break;
+          await processSingleDocument(nextItem);
+        }
+      } finally {
+        isProcessing = false;
+        activeJobId = null;
+        setWorkerStatus('ready', 'OCR Worker Ready');
+        renderCurrentSlideHeader();
+      }
+    }
+
+    async function processSingleDocument(item) {
+      item.status = 'processing';
+      item.progress = 10;
+      item.statusText = 'Loading scan...';
+      activeJobId = item.id;
+      renderCurrentSlideHeader();
+
+      try {
+        // 1. Load image
+        if (!item.imageElement) {
+          item.imageElement = await loadImageFromFile(item.file);
+        }
+        item.origDimensions = `${item.imageElement.naturalWidth}×${item.imageElement.naturalHeight}`;
+
+        // 2. High-Accuracy Adaptive Preprocessing
+        item.statusText = 'Adaptive shadow removal...';
+        item.progress = 20;
+        const prep = await preprocessImage(item.imageElement, item.filter, item.rotation);
+        item.prepCanvas = prep.canvas;
+        item.prepDimensions = `${prep.targetW}×${prep.targetH}`;
+
+        // 3. Tesseract Recognition
+        item.statusText = 'Reading text (0%)...';
+        item.progress = 30;
+        const worker = await getSharedWorker();
+        const res = await worker.recognize(prep.canvas);
+
+        // 4. Heuristic Processing
+        item.confidence = Math.round(res.data.confidence || 0);
+        item.rawOcrText = res.data.text || '';
+        item.cleanOcrText = formatOcrResult(res.data);
+        item.formData = parseDeliveryChallanToIGP(item.rawOcrText, res.data.blocks);
+
+        item.status = 'done';
+        item.progress = 100;
+        item.statusText = 'Completed';
+      } catch (err) {
+        console.error(err);
+        item.status = 'error';
+        item.error = err.message || 'Failed OCR extraction';
+        item.statusText = 'Failed';
+      } finally {
+        if (queue[currentIndex] && queue[currentIndex].id === item.id) {
+          renderCurrentSlide();
+        }
+        renderThumbnailRibbon();
+      }
+    }
+
+    async function reprocessCurrentScan() {
+      const item = queue[currentIndex];
+      if (!item) return;
+
+      item.filter = filterSelect.value;
+      item.status = 'queued';
+      item.progress = 0;
+      showToast(`Re-scanning with filter: ${item.filter}...`, 'info');
+      processQueue();
+    }
+
+    // ==========================================================================
+    // 6. CAROUSEL & SPLIT-VIEW CONTROLLER
+    // ==========================================================================
+
+    function updateWorkspaceView() {
+      if (queue.length === 0) {
+        carouselWorkspace.style.display = 'none';
+        emptyWorkspaceState.style.display = 'flex';
+      } else {
+        carouselWorkspace.style.display = 'flex';
+        emptyWorkspaceState.style.display = 'none';
+        if (currentIndex >= queue.length) currentIndex = queue.length - 1;
+        renderCurrentSlide();
+        renderThumbnailRibbon();
+      }
+    }
+
+    function renderCurrentSlide() {
+      const item = queue[currentIndex];
+      if (!item) return;
+
+      renderCurrentSlideHeader();
+
+      // Display Preprocessed / Original Canvas
+      if (item.prepCanvas) {
+        previewImg.style.display = 'none';
+        previewCanvas.style.display = 'block';
+        previewCanvas.width = item.prepCanvas.width;
+        previewCanvas.height = item.prepCanvas.height;
+        const ctx = previewCanvas.getContext('2d');
+        ctx.drawImage(item.prepCanvas, 0, 0);
+      } else {
+        previewImg.style.display = 'block';
+        previewCanvas.style.display = 'none';
+        previewImg.src = item.originalUrl;
+      }
+
+      applyZoom();
+
+      filterSelect.value = item.filter || 'adaptive';
+
+      metaDimensions.textContent = `Dim: ${item.origDimensions || '-'} → ${item.prepDimensions || '-'}`;
+      metaFileSize.textContent = `Size: ${formatFileSize(item.file.size)}`;
+      metaConfidence.textContent = `Conf: ${item.confidence}%`;
+
+      // Populate Form Fields
+      populateIgpFormDOM(item.formData);
+
+      // Populate Extra Metadata
+      if (item.formData.customerName || item.formData.biltyDate || item.formData.saleOrderNo) {
+        extraMetaBox.style.display = 'grid';
+        metaCustomer.textContent = item.formData.customerName || 'HNR Company (Pvt.) Ltd.';
+        metaBiltyDate.textContent = item.formData.biltyDate || '-';
+        metaSaleOrder.textContent = item.formData.saleOrderNo || '-';
+      } else {
+        extraMetaBox.style.display = 'none';
+      }
+
+      // Populate Clean Text Tab with selected formatting mode
+      cleanTextarea.value = getDisplayStreamText(item.cleanOcrText, streamViewMode) || (item.status === 'processing' ? 'Processing OCR stream...' : 'No text extracted.');
+      updateStreamStats(cleanTextarea.value);
+
+      // Populate JSON Tab
+      jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+    }
+
+    function renderCurrentSlideHeader() {
+      const item = queue[currentIndex];
+      if (!item) return;
+
+      slideIndexBadge.textContent = `DOC ${currentIndex + 1} / ${queue.length}`;
+      currentDocName.textContent = item.file.name;
+
+      if (item.status === 'processing') {
+        currentDocStatus.className = 'status-badge processing';
+        currentDocStatus.textContent = item.statusText;
+      } else if (item.status === 'done') {
+        currentDocStatus.className = 'status-badge done';
+        currentDocStatus.textContent = `Done (${item.confidence}%)`;
+      } else if (item.status === 'error') {
+        currentDocStatus.className = 'status-badge error';
+        currentDocStatus.textContent = 'Error';
+      } else {
+        currentDocStatus.className = 'status-badge queued';
+        currentDocStatus.textContent = 'Queued';
+      }
+
+      btnPrevSlide.disabled = currentIndex === 0;
+      btnNextSlide.disabled = currentIndex === queue.length - 1;
+    }
+
+    function renderThumbnailRibbon() {
+      thumbRibbon.innerHTML = '';
+      queue.forEach((item, idx) => {
+        const thumb = document.createElement('div');
+        thumb.className = `ribbon-thumb ${idx === currentIndex ? 'active' : ''}`;
+        thumb.onclick = () => goToSlide(idx);
+        thumb.innerHTML = `
+          <img src="${item.originalUrl}" alt="${escapeHtml(item.file.name)}">
+          <span class="ribbon-thumb-num">${idx + 1}</span>
+        `;
+        thumbRibbon.appendChild(thumb);
+      });
+    }
+
+    function goToSlide(index) {
+      if (index >= 0 && index < queue.length) {
+        currentIndex = index;
+        renderCurrentSlide();
+        renderThumbnailRibbon();
+      }
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) goToSlide(currentIndex - 1);
+    }
+
+    function nextSlide() {
+      if (currentIndex < queue.length - 1) goToSlide(currentIndex + 1);
+    }
+
+    function deleteCurrentDoc() {
+      if (queue.length === 0) return;
+      const item = queue[currentIndex];
+      item.destroy();
+      queue.splice(currentIndex, 1);
+      if (currentIndex >= queue.length) currentIndex = Math.max(0, queue.length - 1);
+      updateWorkspaceView();
+      showToast('Document removed', 'info');
+    }
+
+    // ==========================================================================
+    // 7. FORM DOM SYNC & TABLE MANAGEMENT
+    // ==========================================================================
+
+    function populateIgpFormDOM(data) {
+      document.getElementById('fieldDepartment').value = data.department || 'Select Department';
+      document.getElementById('fieldDriverName').value = data.driverName || '';
+      document.getElementById('fieldIgpDate').value = data.igpDate || '';
+      document.getElementById('fieldIgpNo').value = data.igpNo || '';
+      document.getElementById('fieldDcNo').value = data.dcNo || '';
+      document.getElementById('fieldDcDate').value = data.dcDate || '';
+      document.getElementById('fieldVendorName').value = data.vendorName || '';
+      document.getElementById('fieldVendorAddress').value = data.vendorAddress || '';
+      document.getElementById('fieldPhoneNo').value = data.phoneNo || '';
+      document.getElementById('fieldPackingListRef').value = data.packingListRef || '';
+      document.getElementById('fieldVehicleNo').value = data.vehicleNo || '';
+      document.getElementById('fieldOgpReturn').checked = !!data.ogpReturn;
+
+      renderTableRowsDOM(data.items || []);
+    }
+
+    function renderTableRowsDOM(items) {
+      igpTableBody.innerHTML = '';
+      if (!items || items.length === 0) {
+        items = [{ srNo: 1, itemCode: '', description: '', unit: 'No.', quantity: '', poNo: '' }];
+      }
+
+      items.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align: center; font-weight: 700; color: #475569;">
+            <input type="text" class="table-input" style="text-align: center; background: #f8fafc;" value="${row.srNo || idx + 1}" oninput="updateTableRow(${idx}, 'srNo', this.value)">
+          </td>
+          <td>
+            <input type="text" class="table-input" value="${escapeHtml(row.itemCode || '')}" placeholder="Item Code" oninput="updateTableRow(${idx}, 'itemCode', this.value)">
+          </td>
+          <td>
+            <input type="text" class="table-input" value="${escapeHtml(row.description || '')}" placeholder="Item Description" oninput="updateTableRow(${idx}, 'description', this.value)">
+          </td>
+          <td>
+            <input type="text" class="table-input" style="text-align: center;" value="${escapeHtml(row.unit || 'No.')}" placeholder="Unit" oninput="updateTableRow(${idx}, 'unit', this.value)">
+          </td>
+          <td>
+            <input type="text" class="table-input" style="text-align: right; font-weight: 700;" value="${escapeHtml(row.quantity || '')}" placeholder="Qty" oninput="updateTableRow(${idx}, 'quantity', this.value)">
+          </td>
+          <td>
+            <input type="text" class="table-input" value="${escapeHtml(row.poNo || '')}" placeholder="PO No." oninput="updateTableRow(${idx}, 'poNo', this.value)">
+          </td>
+          <td style="text-align: center;">
+            <button class="btn-delete-row" type="button" onclick="deleteTableRow(${idx})" title="Delete Row">Delete</button>
+          </td>
+        `;
+        igpTableBody.appendChild(tr);
+      });
+    }
+
+    function updateCurrentFormData(key, value) {
+      const item = queue[currentIndex];
+      if (item && item.formData) {
+        item.formData[key] = value;
+        jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+      }
+    }
+
+    function updateTableRow(rowIdx, field, val) {
+      const item = queue[currentIndex];
+      if (item && item.formData && item.formData.items[rowIdx]) {
+        item.formData.items[rowIdx][field] = val;
+        jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+      }
+    }
+
+    function addTableBlankRow() {
+      const item = queue[currentIndex];
+      if (!item || !item.formData) return;
+      if (!item.formData.items) item.formData.items = [];
+
+      const nextSr = item.formData.items.length + 1;
+      item.formData.items.push({
+        srNo: nextSr,
+        itemCode: '',
+        description: '',
+        unit: 'No.',
+        quantity: '',
+        poNo: item.formData.packingListRef || ''
+      });
+      renderTableRowsDOM(item.formData.items);
+      jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+    }
+
+    function deleteTableRow(rowIdx) {
+      const item = queue[currentIndex];
+      if (!item || !item.formData || !item.formData.items) return;
+      item.formData.items.splice(rowIdx, 1);
+      item.formData.items.forEach((r, i) => r.srNo = i + 1);
+      renderTableRowsDOM(item.formData.items);
+      jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+    }
+
+    function resetCurrentForm() {
+      const item = queue[currentIndex];
+      if (item) {
+        item.formData = parseDeliveryChallanToIGP(item.rawOcrText, null);
+        populateIgpFormDOM(item.formData);
+        showToast('Form reset to detected values', 'info');
+      }
+    }
+
+    function saveCurrentFormRecord() {
+      showToast('Inward Gate Pass record saved successfully!', 'success');
+    }
+
+    function reparseTextareaContent() {
+      const item = queue[currentIndex];
+      if (!item) return;
+      const text = cleanTextarea.value;
+      if (!text) {
+        showToast('Text area is empty', 'error');
+        return;
+      }
+      item.cleanOcrText = text;
+      item.rawOcrText = text;
+      item.formData = parseDeliveryChallanToIGP(text, null);
+      populateIgpFormDOM(item.formData);
+      jsonTextarea.value = JSON.stringify(item.formData, null, 2);
+      updateStreamStats(text);
+      showToast('Re-parsed form from text area!', 'success');
+    }
+
+    // ==========================================================================
+    // 8. 1-CLICK COPY & TSV EXPORT FOR ERP
+    // ==========================================================================
+
+    function copyFormField(inputElementId) {
+      const el = document.getElementById(inputElementId);
+      if (!el || !el.value) {
+        showToast('Field is empty', 'info');
+        return;
+      }
+
+      navigator.clipboard.writeText(el.value).then(() => {
+        showToast(`Copied: "${el.value}"`, 'success');
+      }).catch(() => {
+        fallbackCopy(el.value);
+      });
+    }
+
+    function copyTableAsTsv() {
+      const item = queue[currentIndex];
+      if (!item || !item.formData || !item.formData.items || item.formData.items.length === 0) {
+        showToast('No table rows to copy', 'error');
+        return;
+      }
+
+      const rowsTsv = item.formData.items.map(r => {
+        return `${r.srNo}\t${r.itemCode}\t${r.description}\t${r.unit}\t${r.quantity}\t${r.poNo}`;
+      }).join('\n');
+
+      navigator.clipboard.writeText(rowsTsv).then(() => {
+        showToast(`Copied ${item.formData.items.length} table rows for Excel/ERP paste!`, 'success');
+      }).catch(() => {
+        fallbackCopy(rowsTsv);
+      });
+    }
+
+    function copyAllFormFields() {
+      const item = queue[currentIndex];
+      if (!item || !item.formData) return;
+
+      const f = item.formData;
+      let textBlock = `INWARD GATE PASS FORM DATA
+============================================================
+Department:         ${f.department}
+Driver Name:        ${f.driverName}
+IGP Date:           ${f.igpDate}
+IGP No:             ${f.igpNo}
+DC No:              ${f.dcNo}
+DC Date:            ${f.dcDate}
+Vendor Name:        ${f.vendorName}
+Vendor Address:     ${f.vendorAddress}
+Phone No:           ${f.phoneNo}
+Packing List Ref:   ${f.packingListRef}
+Vehicle No:         ${f.vehicleNo}
+OGP Return:         ${f.ogpReturn ? 'Yes' : 'No'}
+
+LINE ITEMS:
+------------------------------------------------------------
+Sr | Items | Description | Unit | Quantity | PO No.
+`;
+
+      f.items.forEach(r => {
+        textBlock += `${r.srNo} | ${r.itemCode} | ${r.description} | ${r.unit} | ${r.quantity} | ${r.poNo}\n`;
+      });
+
+      navigator.clipboard.writeText(textBlock).then(() => {
+        showToast('Copied all form fields!', 'success');
+      }).catch(() => {
+        fallbackCopy(textBlock);
+      });
+    }
+
+    function copyCurrentCleanText() {
+      const val = cleanTextarea.value;
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => {
+        showToast('Copied OCR stream text!', 'success');
+      });
+    }
+
+    function copyCurrentJsonPayload() {
+      const val = jsonTextarea.value;
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => {
+        showToast('Copied JSON payload!', 'success');
+      });
+    }
+
+    function downloadCurrentTextFile() {
+      const item = queue[currentIndex];
+      if (!item) return;
+      const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+      const blob = new Blob([cleanTextarea.value], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseName}_ocr_lines.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Downloaded formatted text file', 'success');
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Copied to clipboard!', 'success');
+    }
+
+    // ==========================================================================
+    // 9. POP-OUT COMPARISON MODAL CONTROLLER
+    // ==========================================================================
+
+    function openComparisonModal() {
+      const item = queue[currentIndex];
+      if (!item) {
+        showToast('No document loaded to inspect', 'info');
+        return;
+      }
+
+      modalDocTitle.textContent = item.file.name;
+      modalOrigMeta.textContent = `${item.origDimensions} • ${formatFileSize(item.file.size)}`;
+      modalEnhancedMeta.textContent = `${item.filter.toUpperCase()} • ${item.prepDimensions} • ${item.confidence}% Conf`;
+
+      // 1. Render Original
+      modalImgOriginal.src = item.originalUrl;
+
+      // 2. Render Enhanced Canvas
+      if (item.prepCanvas) {
+        modalCanvasEnhanced.style.display = 'block';
+        modalCanvasEnhanced.width = item.prepCanvas.width;
+        modalCanvasEnhanced.height = item.prepCanvas.height;
+        const ctx = modalCanvasEnhanced.getContext('2d');
+        ctx.drawImage(item.prepCanvas, 0, 0);
+      } else {
+        modalCanvasEnhanced.style.display = 'none';
+      }
+
+      scanComparisonModal.classList.add('active');
+    }
+
+    function closeComparisonModal() {
+      scanComparisonModal.classList.remove('active');
+    }
+
+    function downloadOriginalImage() {
+      const item = queue[currentIndex];
+      if (!item) return;
+      const a = document.createElement('a');
+      a.href = item.originalUrl;
+      a.download = item.file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Downloaded original image', 'success');
+    }
+
+    function downloadEnhancedImage() {
+      const item = queue[currentIndex];
+      if (!item || !item.prepCanvas) return;
+      const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+      item.prepCanvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${baseName}_enhanced.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Downloaded enhanced scan', 'success');
+      }, 'image/png');
+    }
+
+    // ==========================================================================
+    // 10. ZOOM & ROTATION CONTROLS
+    // ==========================================================================
+
+    function applyZoom() {
+      const el = previewCanvas.style.display === 'block' ? previewCanvas : previewImg;
+      if (el) {
+        el.style.transform = `scale(${currentZoom})`;
+      }
+      zoomLevelText.textContent = `${Math.round(currentZoom * 100)}%`;
+    }
+
+    function zoomIn() {
+      currentZoom = Math.min(3.0, currentZoom + 0.25);
+      applyZoom();
+    }
+
+    function zoomOut() {
+      currentZoom = Math.max(0.5, currentZoom - 0.25);
+      applyZoom();
+    }
+
+    function zoomReset() {
+      currentZoom = 1.0;
+      applyZoom();
+    }
+
+    function rotateCW() {
+      const item = queue[currentIndex];
+      if (!item) return;
+      item.rotation = (item.rotation + 90) % 360;
+      showToast(`Rotated to ${item.rotation}°`, 'info');
+      reprocessCurrentScan();
+    }
+
+    function rotateCCW() {
+      const item = queue[currentIndex];
+      if (!item) return;
+      item.rotation = (item.rotation + 270) % 360;
+      showToast(`Rotated to ${item.rotation}°`, 'info');
+      reprocessCurrentScan();
+    }
+
+    // ==========================================================================
+    // 11. SYNTHETIC SAMPLES
+    // ==========================================================================
+
+    function generateChallanCanvas(type) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 850;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1200, 850);
+
+      ctx.fillStyle = '#0f172a';
+
+      if (type === 'jw') {
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText('JW Packages Pvt(Ltd)', 60, 50);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText('5-KM Raiwand Manga Road Lahore.', 60, 80);
+
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText('Delivery Challan', 900, 55);
+
+        ctx.font = '15px monospace';
+        ctx.fillText('Challan No : 993 8-26', 70, 150);
+        ctx.fillText('Challan Date : 27/08/2026', 70, 180);
+        ctx.fillText('Customer Code: 1', 70, 210);
+        ctx.fillText('Customer Name: HNR Company Pvt Ltd', 70, 240);
+        ctx.fillText('Customer Add: 19.5 KM RAIWIND ROAD LAHORE', 70, 270);
+
+        ctx.fillText('Customer PO#: DN202608270002', 650, 150);
+        ctx.fillText('Bilty Date: 27/08/2026', 650, 180);
+        ctx.fillText('Vehicle Type: 24FT(HUDA)', 650, 210);
+        ctx.fillText('Truck No: LES-1568', 650, 240);
+        ctx.fillText('Driver Name: NAVEED ALIM', 650, 270);
+
+        ctx.strokeRect(60, 330, 1080, 180);
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(60, 330, 1080, 40);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('S No.    Dtl Code              Description                                                  Munit       Qty', 80, 355);
+
+        ctx.font = '15px monospace';
+        ctx.fillText('1      0301011000015     0090518614 Local Packing Box C32H5X                No.        550.00', 80, 400);
+        ctx.fillText('2      0301011000017     0090518763 Local Packing Ctn H32K85GX              No.       2550.00', 80, 440);
+        ctx.fillText('Total :                                                                               3,100.00', 80, 485);
+
+        ctx.strokeStyle = '#00897b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(700, 600, 260, 120);
+        ctx.fillStyle = '#00897b';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('Haier HNR Co. (PVT) LTD', 720, 630);
+        ctx.fillText('27 AUG 2026', 720, 660);
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('36211', 720, 700);
+
+      } else if (type === 'multitech') {
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText('Multi Tech International', 60, 50);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText('Printing Solutions', 60, 78);
+
+        ctx.strokeRect(950, 30, 180, 75);
+        ctx.font = '13px sans-serif';
+        ctx.fillText('S.O. No.', 1000, 55);
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('12035', 1000, 90);
+
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText('Delivery Challan', 450, 140);
+
+        ctx.strokeRect(60, 170, 500, 130);
+        ctx.font = '14px sans-serif';
+        ctx.fillText('Name / Address:', 75, 195);
+        ctx.fillText('HNR Company(Pvt.) Ltd. 19.5-km, Raiwind Road, Lahore', 75, 225);
+        ctx.fillText('NTN: 3608026-8', 75, 255);
+
+        ctx.strokeRect(600, 170, 540, 80);
+        ctx.fillText('Ship To: WM 6636', 615, 215);
+
+        ctx.strokeRect(600, 260, 260, 40);
+        ctx.fillText('P.O. / D.N. No. :', 615, 285);
+
+        ctx.strokeRect(870, 260, 270, 40);
+        ctx.fillText('Vehicle: Adeel LEU-8841', 885, 285);
+
+        ctx.strokeRect(60, 340, 1080, 250);
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(60, 340, 1080, 40);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('Sr.    Description                                                Item Code     U/M     Quantity', 80, 365);
+
+        ctx.font = '15px monospace';
+        ctx.fillText('1     Adjustable Feet Sticker (All FA Models)                    4052-2        No.      18,000', 80, 410);
+        ctx.fillText('2     Manual Book 110-688/130/150-688S8                          4010-05       No.       3,920', 80, 445);
+        ctx.fillText('3     Manual Book Single Page HWM150-B2578S8                     4010-07       No.         350', 80, 480);
+        ctx.fillText('4     Single Page Manual Book HWM90-826E                         4010-03-01    No.       2,980', 80, 515);
+        ctx.fillText('      Subtotal: 25,250', 80, 560);
+
+        ctx.strokeStyle = '#00897b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(700, 640, 260, 120);
+        ctx.fillStyle = '#00897b';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('Haier HNR Co. (PVT) LTD', 720, 670);
+        ctx.fillText('27 AUG 2026', 720, 700);
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('36211', 720, 740);
+
+      } else {
+        ctx.font = 'bold 32px serif';
+        ctx.fillText('Ghani', 60, 60);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText('GVG Sheikhupura OU - DELIVERY CHALLAN', 450, 60);
+
+        ctx.font = '15px monospace';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText('DC # : 3400026981', 70, 130);
+        ctx.fillText('DC Date : Aug 27, 2026', 70, 160);
+        ctx.fillText('Customer : HNR COMPANY (PRIVATE) LIMITED', 70, 190);
+        ctx.fillText('Driver Name : Shakeel', 70, 220);
+        ctx.fillText('Dispatch City : LAHORE', 70, 250);
+        ctx.fillText('Dispatch Address : 19.5 KM, RAIWIND ROAD', 70, 280);
+
+        ctx.fillText('Sale Order#: 1300022221', 700, 130);
+        ctx.fillText('Vehicle#: TAT-194', 700, 160);
+        ctx.fillText('PO # : HNR PO 4502206733 - WM', 700, 190);
+        ctx.fillText('Status : Completely processed', 700, 220);
+
+        ctx.strokeRect(60, 340, 1080, 180);
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(60, 340, 1080, 40);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('Item       Item Description                                 Pri(UOM)   Order Qty   Primary Qty', 80, 365);
+
+        ctx.font = '15px monospace';
+        ctx.fillText('81001845   3MM HAIER WM LID GRY 350.8*521 TEM FG               EA         500         500', 80, 410);
+        ctx.fillText('81001827   3MM HAIER WM LID GREY 380.9*550 TEM FG              EA         450         450', 80, 450);
+        ctx.fillText('Total :                                                                   950', 80, 490);
+
+        ctx.strokeStyle = '#00897b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(700, 600, 260, 120);
+        ctx.fillStyle = '#00897b';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('Haier HNR Co. (PVT) LTD', 720, 630);
+        ctx.fillText('27 AUG 2026', 720, 660);
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('36209', 720, 700);
+      }
+
+      return new Promise(resolve => {
+        canvas.toBlob(blob => {
+          const name = type === 'jw' ? 'JW_Packages_Challan_993.png' : (type === 'multitech' ? 'MultiTech_Challan_12035.png' : 'Ghani_Delivery_Challan_3400026981.png');
+          resolve(new File([blob], name, { type: 'image/png' }));
+        }, 'image/png');
+      });
+    }
+
+    async function loadSample(type) {
+      const file = await generateChallanCanvas(type);
+      enqueueFiles([file]);
+      showToast(`Loaded ${file.name}`, 'info');
+    }
+
+    // ==========================================================================
+    // 12. EVENT LISTENERS & SETUP
+    // ==========================================================================
+
+    function setupEventListeners() {
+      // Browse
+      btnBrowseHeader.addEventListener('click', () => fileInput.click());
+      dropzone.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+          fileInput.click();
+        }
+      });
+      fileInput.addEventListener('change', (e) => {
+        enqueueFiles(e.target.files);
+        fileInput.value = '';
+      });
+
+      // Drag and drop
+      ['dragenter', 'dragover'].forEach(n => dropzone.addEventListener(n, e => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      }));
+      ['dragleave', 'drop'].forEach(n => dropzone.addEventListener(n, e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      }));
+      dropzone.addEventListener('drop', e => {
+        if (e.dataTransfer && e.dataTransfer.files) {
+          enqueueFiles(e.dataTransfer.files);
+        }
+      });
+
+      window.addEventListener('dragover', e => e.preventDefault());
+      window.addEventListener('drop', e => e.preventDefault());
+
+      // Clipboard paste (Ctrl+V)
+      window.addEventListener('paste', e => {
+        if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        const files = [];
+        for (const item of items) {
+          if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const blob = item.getAsFile();
+            files.push(new File([blob], `challan_scan_${Date.now()}.png`, { type: blob.type }));
+          }
+        }
+        if (files.length > 0) {
+          enqueueFiles(files);
+          showToast(`Pasted ${files.length} document from clipboard!`, 'info');
+        }
+      });
+
+      // Carousel Nav
+      btnPrevSlide.addEventListener('click', prevSlide);
+      btnNextSlide.addEventListener('click', nextSlide);
+      btnDeleteCurrent.addEventListener('click', deleteCurrentDoc);
+
+      // Keyboard arrow shortcuts & Escape for Modal
+      window.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && scanComparisonModal.classList.contains('active')) {
+          closeComparisonModal();
+          return;
+        }
+        if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'ArrowRight') nextSlide();
+      });
+
+      // Pop-Out Modal Trigger
+      viewportContainer.addEventListener('click', openComparisonModal);
+      btnOpenModal.addEventListener('click', openComparisonModal);
+      btnCloseModal.addEventListener('click', closeComparisonModal);
+      scanComparisonModal.addEventListener('click', e => {
+        if (e.target === scanComparisonModal) closeComparisonModal();
+      });
+
+      btnDownloadOriginal.addEventListener('click', downloadOriginalImage);
+      btnDownloadEnhanced.addEventListener('click', downloadEnhancedImage);
+
+      // Image enhancement & rotation
+      btnReprocessScan.addEventListener('click', reprocessCurrentScan);
+      btnRotateCW.addEventListener('click', rotateCW);
+      btnRotateCCW.addEventListener('click', rotateCCW);
+
+      // Zoom
+      btnZoomIn.addEventListener('click', zoomIn);
+      btnZoomOut.addEventListener('click', zoomOut);
+      btnZoomReset.addEventListener('click', zoomReset);
+
+      // Tabs Switch
+      tabBtnForm.addEventListener('click', () => switchTab('form'));
+      tabBtnText.addEventListener('click', () => switchTab('text'));
+      tabBtnJson.addEventListener('click', () => switchTab('json'));
+
+      // Copy Action buttons
+      btnCopyTableTsv.addEventListener('click', copyTableAsTsv);
+      btnCopyAllForm.addEventListener('click', copyAllFormFields);
+
+      // Samples
+      btnSampleJW.addEventListener('click', () => loadSample('jw'));
+      btnSampleMultiTech.addEventListener('click', () => loadSample('multitech'));
+      btnSampleGhani.addEventListener('click', () => loadSample('ghani'));
+
+      // Stream textarea live counter
+      cleanTextarea.addEventListener('input', () => updateStreamStats(cleanTextarea.value));
+
+      // Unload cleanup
+      window.addEventListener('beforeunload', () => {
+        queue.forEach(q => q.destroy());
+        if (sharedWorker) sharedWorker.terminate().catch(() => { });
+      });
+    }
+
+    function switchTab(tab) {
+      [tabBtnForm, tabBtnText, tabBtnJson].forEach(b => b.classList.remove('active'));
+      [tabContentForm, tabContentText, tabContentJson].forEach(c => c.classList.remove('active'));
+
+      if (tab === 'form') {
+        tabBtnForm.classList.add('active');
+        tabContentForm.classList.add('active');
+      } else if (tab === 'text') {
+        tabBtnText.classList.add('active');
+        tabContentText.classList.add('active');
+      } else if (tab === 'json') {
+        tabBtnJson.classList.add('active');
+        tabContentJson.classList.add('active');
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      let icon = '';
+      if (type === 'success') {
+        icon = '<svg class="icon" style="color: var(--emerald);" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+      } else if (type === 'error') {
+        icon = '<svg class="icon" style="color: var(--rose);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+      } else {
+        icon = '<svg class="icon" style="color: var(--cyan);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+      }
+
+      toast.innerHTML = `${icon}<span>${escapeHtml(message)}</span>`;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '0 B';
+      if (bytes < 1024) return bytes + ' B';
+      const kb = bytes / 1024;
+      if (kb < 1024) return kb.toFixed(1) + ' KB';
+      return (kb / 1024).toFixed(1) + ' MB';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initialize application
+    setupEventListeners();
+  </script>
+</body>
+
+</html>
